@@ -1,0 +1,16 @@
+# This file is machine-generated - editing it directly is not advised
+
+[[FastLapackInterface]]
+deps = ["LinearAlgebra"]
+git-tree-sha1 = "a82ae140565456800a09c026f200e7046b247ac7"
+repo-rev = "master"
+repo-url = "https://git.dynare.org/julia-packages/fastlapackinterface.jl.git"
+uuid = "29a986be-02c6-4525-aec4-84b980013641"
+version = "0.1.0"
+
+[[Libdl]]
+uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
+
+[[LinearAlgebra]]
+deps = ["Libdl"]
+uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
