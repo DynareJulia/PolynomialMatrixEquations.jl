@@ -44,9 +44,6 @@ struct GsSolverWs
     end
 end
 
-struct UnstableSystemException <: Exception end
-struct UndeterminateSystemException <: Exception end
-
 #"""
 #    gs_solver!(ws::GsSolverWs,d::Matrix{Float64},e::Matrix{Float64},n1::Int64,qz_criterium)
 #
@@ -63,9 +60,9 @@ function gs_solver!(ws::GsSolverWs,d::Matrix{Float64},e::Matrix{Float64},n1::Int
     nstable = ws.dgges_ws.sdim[]
     
     if nstable < n1
-        throw(UnstableSystemException)
+        throw(UnstableSystemException())
     elseif nstable > n1
-        throw(UndeterminateSystemExcpetion)
+        throw(UndeterminateSystemException())
     end
     ws.g2 .= ws.Z12'
     linsolve_core!(ws.Z22', ws.g2, ws.linsolve_ws_22)
