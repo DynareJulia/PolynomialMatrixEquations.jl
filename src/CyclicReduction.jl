@@ -37,7 +37,8 @@ mutable struct CyclicReductionWs
         m2_a0 = view(m2, 1:n, 1:n)
         m2_a2 = view(m2, n .+ (1:n), 1:n)
         info = 0
-        new(linsolve_ws,ahat1,a1copy,m, m00, m02, m20, m22, m1, m1_a0, m1_a2, m2, m2_a0, m2_a2, info) 
+        new(linsolve_ws, ahat1, a1copy, m, m00, m02, m20, m22,
+            m1, m1_a0, m1_a2, m2, m2_a0, m2_a2, info) 
     end
 end
 
@@ -46,10 +47,8 @@ end
 
 Solve the quadratic matrix equation a0 + a1*x + a2*x*x = 0, using the cyclic reduction method from Bini et al. (???).
 
-The solution is returned in matrix x. In case of nonconvergency, x is set to NaN and an error code is returned in ws.info
-* info = 0: return OK
-* info = 1: no stable solution (????)
-* info = 2: multiple stable solutions (????)
+The solution is returned in matrix x. In case of nonconvergency, x is set to NaN and 
+UndeterminateSystemExcpetion or UnstableSystemException is thrown
 
 # Example
 ```meta
@@ -92,14 +91,13 @@ function cyclic_reduction!(x::Array{Float64},a0::Array{Float64},a1::Array{Float6
         copyto!(ws.m1_a2, ws.m22)
         copyto!(ws.m2_a0, ws.m00)
         copyto!(ws.m2_a2, ws.m22)
-        if any(isinf.(ws.m))
-            if norm(ws.m1_a0) < cvg_tol
-                ws.info = 2
-            else
-                ws.info = 1
-            end
+        if any(isinf.(ws.m)) || any(isnan.(ws.m))
             fill!(x,NaN)
-            return
+            if norm(ws.m1_a0) < Inf
+                throw(UndeterminateSystemException())
+            else
+                throw(UnstableSystemException())
+            end
         end
         ws.ahat1 += ws.m20
         crit = norm(ws.m1_a0,1)
@@ -112,10 +110,11 @@ function cyclic_reduction!(x::Array{Float64},a0::Array{Float64},a1::Array{Float6
         it += 1
     end
     if it == max_it
+        println("max_it")
         if norm(ws.m1_a0) < cvg_tol
-            ws.info = 2
+            throw(UnstableSystemException())
         else
-            ws.info = 1
+            throw(UndeterminateSystemException())
         end
         fill!(x,NaN)
         return
@@ -123,7 +122,7 @@ function cyclic_reduction!(x::Array{Float64},a0::Array{Float64},a1::Array{Float6
         linsolve_core!(ws.ahat1, x, ws.linsolve_ws)
         @inbounds lmul!(-1.0,x)
         ws.info = 0
-    end        
+    end
 end
 
 function cyclic_reduction_check(x::Array{Float64,2},a0::Array{Float64,2}, a1::Array{Float64,2}, a2::Array{Float64,2},cvg_tol::Float64)
