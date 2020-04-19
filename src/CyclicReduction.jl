@@ -71,7 +71,13 @@ julia> display(names(CyclicReduction))
 julia> cyclic_reduction!(x,a0,a1,a2,ws,1e-8,50)
 ```
 """
-function cyclic_reduction!(x::Array{Float64},a0::Array{Float64},a1::Array{Float64},a2::Array{Float64},ws::CyclicReductionWs, cvg_tol::Float64, max_it::Int64)
+function cyclic_reduction!(x::AbstractMatrix{Float64},
+                           a0::AbstractMatrix{Float64},
+                           a1::AbstractMatrix{Float64},
+                           a2::AbstractMatrix{Float64},
+                           ws::CyclicReductionWs,
+                           cvg_tol::Float64,
+                           max_it::Int64)
     copyto!(x,a0)
     copyto!(ws.ahat1,1,a1,1,length(a1))
     @inbounds copyto!(ws.m1_a0, a0)
