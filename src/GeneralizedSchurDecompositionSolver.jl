@@ -56,7 +56,15 @@ end
 #"""
 function gs_solver!(ws::GsSolverWs,d::Matrix{Float64},e::Matrix{Float64},n1::Int64,qz_criterium::Float64)
 
-    dgges!('N', 'V', e, d, zeros(1,1), ws.vsr, ws.eigval, ws.dgges_ws)
+    try
+        dgges!('N', 'V', e, d, zeros(1,1), ws.vsr, ws.eigval, ws.dgges_ws)
+    catch e
+        if e.error_nbr = size(e,1) + 2
+            println("Warning: DGGES reports error $(e.error_nbr")
+        else
+            rethrow(e)
+        end
+    end
     nstable = ws.dgges_ws.sdim[]
     
     if nstable < n1
