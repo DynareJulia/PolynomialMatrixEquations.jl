@@ -1,5 +1,5 @@
-using FastLapackInterface.SchurAlgo: DggesWs, dgges!
-using FastLapackInterface.LinSolveAlgo: LinSolveWs, linsolve_core!
+using FastLapackInterface: DggesWs, dgges!
+using FastLapackInterface: LinSolveWs, linsolve_core!
 using LinearAlgebra
 using LinearAlgebra.BLAS
 

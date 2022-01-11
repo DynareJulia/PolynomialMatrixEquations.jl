@@ -1,4 +1,4 @@
-using FastLapackInterface.LinSolveAlgo: LinSolveWs, linsolve_core!
+using FastLapackInterface: LinSolveWs, linsolve_core!
 
 using LinearAlgebra
 using LinearAlgebra.BLAS: gemm!
