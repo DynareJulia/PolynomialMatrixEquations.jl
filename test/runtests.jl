@@ -1,5 +1,6 @@
 using LinearAlgebra
 using PolynomialMatrixEquations
+using PolynomialMatrixEquations.FastLapackInterface
 using Random
 using Test
 
@@ -9,54 +10,59 @@ numberundeterminate = 0
 numberunstable = 0
 
 qz_criterium = 1 + 1e-6
+@testset "GsSolverWs" begin 
+    Random.seed!(123)
+    ncases = 20
+    n=10
+    d_origs = [randn(n, n) for i =1:ncases]
+    e_origs = [randn(n, n) for i =1:ncases]
+    luwss = [LUWs(randn(5,5)) for i = 1:ncases]
+    for i = 1:ncases
+        println("Test $i")
+        d_orig = d_origs[i]
+        e_orig = e_origs[i]
+        luws = luwss[i]
+        schurws = GeneralizedSchurWs(randn(5,5))
+        F = schur(e_orig, d_orig)
+        eigenvalues = F.α ./ F.β
+        nstable = count(abs.(eigenvalues) .< 1+1e-6)
 
-Random.seed!(123)
-ncases = 20
-n=10
+        d = copy(d_orig)
+        e = copy(e_orig)
+        ws1 = GsSolverWs(d, nstable)
+        @time gs_solver!(ws1, schurws, luws, d, e, nstable, qz_criterium)
+        @test d_orig*[I(nstable); ws1.g2]*ws1.g1 ≈ e_orig*[I(nstable); ws1.g2]
 
-for i = 1:ncases
-    println("Test $i")
-    d_orig = randn(n, n)
-    e_orig = randn(n, n)
-    F = schur(e_orig, d_orig)
-    eigenvalues = F.α ./ F.β
-    nstable = count(abs.(eigenvalues) .< 1+1e-6)
+        # a0 = Matrix([-e[:, 1:nstable] zeros(n, n-nstable)])
+        # a1 = Matrix([d[:, 1:nstable] -e[:, (nstable+1):n]])
+        # a2 = Matrix([zeros(n, nstable) d[:, (nstable+1):n]])
 
-    d = copy(d_orig)
-    e = copy(e_orig)
-    ws1 = GsSolverWs(d, e, nstable)
-    gs_solver!(ws1, d, e, nstable, qz_criterium)
-    @test d_orig*[I(nstable); ws1.g2]*ws1.g1 ≈ e_orig*[I(nstable); ws1.g2]
+        # x = zeros(n, n)
+        # ws2 = CyclicReductionWs(n)
+        # cyclic_reduction!(x, a0, a1, a2, ws2, 1e-8, 50)
+        # @test isapprox(a0 + a1*x + a2*x*x, zeros(n, n); atol = 1e-12)
 
-    a0 = Matrix([-e[:, 1:nstable] zeros(n, n-nstable)])
-    a1 = Matrix([d[:, 1:nstable] -e[:, (nstable+1):n]])
-    a2 = Matrix([zeros(n, nstable) d[:, (nstable+1):n]])
+        # nstable1 = nstable + 1
+        # @test_throws UnstableSystemException gs_solver!(ws1, d, e, nstable + 1, qz_criterium)
+        
+        # a0 = Matrix([-e[:, 1:nstable1] zeros(n, n-nstable1)])
+        # a1 = Matrix([d[:, 1:nstable1] -e[:, (nstable1+1):n]])
+        # a2 = Matrix([zeros(n, nstable1) d[:, (nstable1+1):n]])
 
-    x = zeros(n, n)
-    ws2 = CyclicReductionWs(n)
-    cyclic_reduction!(x, a0, a1, a2, ws2, 1e-8, 50)
-    @test isapprox(a0 + a1*x + a2*x*x, zeros(n, n); atol = 1e-12)
+        # x = zeros(n, n)
+        # ws2 = CyclicReductionWs(n)
 
-    nstable1 = nstable + 1
-    @test_throws UnstableSystemException gs_solver!(ws1, d, e, nstable + 1, qz_criterium)
-    
-    a0 = Matrix([-e[:, 1:nstable1] zeros(n, n-nstable1)])
-    a1 = Matrix([d[:, 1:nstable1] -e[:, (nstable1+1):n]])
-    a2 = Matrix([zeros(n, nstable1) d[:, (nstable1+1):n]])
+        # @test_throws UnstableSystemException cyclic_reduction!(x, a0, a1, a2, ws2, 1e-8, 50)
 
-    x = zeros(n, n)
-    ws2 = CyclicReductionWs(n)
+        # nstable1 = nstable - 1
+        # @test_throws UndeterminateSystemException gs_solver!(ws1, d, e, nstable1, qz_criterium)
 
-    @test_throws UnstableSystemException cyclic_reduction!(x, a0, a1, a2, ws2, 1e-8, 50)
+        # a0 = Matrix([-e[:, 1:nstable1] zeros(n, n-nstable1)])
+        # a1 = Matrix([d[:, 1:nstable1] -e[:, (nstable1+1):n]])
+        # a2 = Matrix([zeros(n, nstable1) d[:, (nstable1+1):n]])
 
-    nstable1 = nstable - 1
-    @test_throws UndeterminateSystemException gs_solver!(ws1, d, e, nstable1, qz_criterium)
-
-    a0 = Matrix([-e[:, 1:nstable1] zeros(n, n-nstable1)])
-    a1 = Matrix([d[:, 1:nstable1] -e[:, (nstable1+1):n]])
-    a2 = Matrix([zeros(n, nstable1) d[:, (nstable1+1):n]])
-
-    x = zeros(n, n)
-    ws2 = CyclicReductionWs(n)
-    @test_throws UndeterminateSystemException cyclic_reduction!(x, a0, a1, a2, ws2, 1e-8, 50)
+        # x = zeros(n, n)
+        # ws2 = CyclicReductionWs(n)
+        # @test_throws UndeterminateSystemException cyclic_reduction!(x, a0, a1, a2, ws2, 1e-8, 50)
+    end
 end
