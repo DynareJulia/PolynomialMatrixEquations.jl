@@ -1,44 +1,24 @@
-using FastLapackInterface: LinSolveWs, linsolve_core!
-
 using LinearAlgebra
 using LinearAlgebra.BLAS: gemm!
 export CyclicReductionWs, cyclic_reduction!, cyclic_reduction_check
 
 mutable struct CyclicReductionWs
-    linsolve_ws::LinSolveWs
+    linsolve_ws::LUWs
     ahat1::Matrix{Float64}
     a1copy::Matrix{Float64}
     m::Matrix{Float64,}
-    m00::SubArray{Float64}
-    m02::SubArray{Float64}
-    m20::SubArray{Float64}
-    m22::SubArray{Float64}
     m1::Matrix{Float64}
-    m1_a0::SubArray{Float64}
-    m1_a2::SubArray{Float64}
     m2::Matrix{Float64}
-    m2_a0::SubArray{Float64}
-    m2_a2::SubArray{Float64}
-    info::Int64
+    info::Int
 
     function CyclicReductionWs(n)
-        linsolve_ws = LinSolveWs(n)
+        linsolve_ws = LUWs(n)
         ahat1 = Matrix{Float64}(undef, n,n)
-	a1copy = Matrix{Float64}(undef, n,n)
+        a1copy = Matrix{Float64}(undef, n,n)
         m = Matrix{Float64}(undef, 2*n,2*n)
-        m00 = view(m,1:n,1:n)
-        m02 = view(m,1:n,n .+ (1:n))
-        m20 = view(m,n .+ (1:n), 1:n)
-        m22 = view(m,n .+ (1:n),n .+(1:n))
         m1 = Matrix{Float64}(undef, n, 2*n)
-        m1_a0 = view(m1,1:n,1:n)
-        m1_a2 = view(m1,1:n,n .+ (1:n))
         m2 = Matrix{Float64}(undef, 2*n, n)
-        m2_a0 = view(m2, 1:n, 1:n)
-        m2_a2 = view(m2, n .+ (1:n), 1:n)
-        info = 0
-        new(linsolve_ws, ahat1, a1copy, m, m00, m02, m20, m22,
-            m1, m1_a0, m1_a2, m2, m2_a0, m2_a2, info) 
+        new(linsolve_ws, ahat1, a1copy, m, m1, m2,0) 
     end
 end
 
@@ -77,39 +57,53 @@ function cyclic_reduction!(x::AbstractMatrix{Float64},
                            a2::AbstractMatrix{Float64},
                            ws::CyclicReductionWs,
                            cvg_tol::Float64,
-                           max_it::Int64)
-    copyto!(x,a0)
-    copyto!(ws.ahat1,1,a1,1,length(a1))
-    @inbounds copyto!(ws.m1_a0, a0)
-    @inbounds copyto!(ws.m1_a2, a2)
-    @inbounds copyto!(ws.m2_a0, a0)
-    @inbounds copyto!(ws.m2_a2, a2)
+                           max_it::Int)
+    n = size(a0,1)
+    x .= a0
+    m = ws.m
+    m1 = ws.m1
+    m2 = ws.m2
+    m1_a0 = view(m1,1:n,1:n)
+    m1_a2 = view(m1,1:n,n+1:2n)
+    m2_a0 = view(m2, 1:n, 1:n)
+    m2_a2 = view(m2, n+1:2n, 1:n)
+    ws.ahat1 .= a1
+    m1_a0 .= a0
+    m1_a2 .= a2
+    m2_a0 .= a0
+    m2_a2 .= a2
     it = 0
+    m00 = view(m,1:n,1:n)
+    m02 = view(m,1:n,n+1:2n)
+    m20 = view(m,n+1:2n,1:n)
+    m22 = view(m,n+1:2n,n+1:2n)
     @inbounds while it < max_it
         #        ws.m = [a0; a2]*(a1\[a0 a2])
-	copyto!(ws.a1copy,a1)
-        linsolve_core!(ws.a1copy, ws.m1, ws.linsolve_ws)
+        ws.a1copy .= a1
+        lu_t = LU(factorize!(ws.linsolve_ws, ws.a1copy)...)
+        ldiv!(lu_t, ws.m1)
         gemm!('N','N',-1.0,ws.m2,ws.m1,0.0,ws.m)
+        
         @simd for i in eachindex(a1)
-            a1[i] += ws.m02[i] + ws.m20[i]
+            a1[i] += m02[i] + m20[i]
         end
-        copyto!(ws.m1_a0, ws.m00)
-        copyto!(ws.m1_a2, ws.m22)
-        copyto!(ws.m2_a0, ws.m00)
-        copyto!(ws.m2_a2, ws.m22)
-        if any(isinf.(ws.m)) || any(isnan.(ws.m))
+        m1_a0 .= m00
+        m1_a2 .= m22
+        m2_a0 .= m00
+        m2_a2 .= m22
+        if any(isinf, m) || any(isnan,m)
             fill!(x,NaN)
-            if norm(ws.m1_a0) < Inf
+            if norm(m1_a0) < Inf
                 throw(UndeterminateSystemException())
             else
                 throw(UnstableSystemException())
             end
         end
-        ws.ahat1 += ws.m20
-        crit = norm(ws.m1_a0,1)
+        ws.ahat1 .+=m20
+        crit = norm(m1_a0,1)
         if crit < cvg_tol
-	    # keep iterating until condition on a2 is met
-            if norm(ws.m1_a2,1) < cvg_tol
+        # keep iterating until condition on a2 is met
+            if norm(m1_a2,1) < cvg_tol
                 break
             end
         end
@@ -117,7 +111,7 @@ function cyclic_reduction!(x::AbstractMatrix{Float64},
     end
     if it == max_it
         println("max_it")
-        if norm(ws.m1_a0) < cvg_tol
+        if norm(m1_a0) < cvg_tol
             throw(UnstableSystemException())
         else
             throw(UndeterminateSystemException())
@@ -125,7 +119,8 @@ function cyclic_reduction!(x::AbstractMatrix{Float64},
         fill!(x,NaN)
         return
     else
-        linsolve_core!(ws.ahat1, x, ws.linsolve_ws)
+        lu_t = LU(factorize!(ws.linsolve_ws, ws.ahat1)...)
+        ldiv!(lu_t, x)
         @inbounds lmul!(-1.0,x)
         ws.info = 0
     end
