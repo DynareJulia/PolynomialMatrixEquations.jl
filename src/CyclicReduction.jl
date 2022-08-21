@@ -82,24 +82,23 @@ function cyclic_reduction!(x::AbstractMatrix{Float64},
         ws.a1copy .= a1
         lu_t = LU(factorize!(ws.linsolve_ws, ws.a1copy)...)
         ldiv!(lu_t, ws.m1)
-        gemm!('N','N',-1.0,ws.m2,ws.m1,0.0,ws.m)
         
-        @simd for i in eachindex(a1)
-            a1[i] += m02[i] + m20[i]
-        end
+        gemm!('N','N',-1.0,m2,m1,0.0,m)
+        
+        a1 .+= m02 .+ m20
         m1_a0 .= m00
         m1_a2 .= m22
         m2_a0 .= m00
         m2_a2 .= m22
         if any(isinf, m) || any(isnan,m)
-            fill!(x,NaN)
+            fill!(x, NaN)
             if norm(m1_a0) < Inf
                 throw(UndeterminateSystemException())
             else
                 throw(UnstableSystemException())
             end
         end
-        ws.ahat1 .+=m20
+        ws.ahat1 .+= m20
         crit = norm(m1_a0,1)
         if crit < cvg_tol
         # keep iterating until condition on a2 is met
