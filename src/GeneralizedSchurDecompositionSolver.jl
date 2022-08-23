@@ -28,6 +28,16 @@ struct GsSolverWs
     end
 end
 
+#"""
+#    gs_solver!(ws::GsSolverWs,d::Matrix{Float64},e::Matrix{Float64},n1::Int64,qz_criterium)
+#
+#finds the unique stable solution for the following system:
+#
+#```
+#d \left[\begin{array}{c}I\\g_2\end{array}\right]g_1 = e \left[\begin{array}{c}I\\g_2\end{array}\right]
+#```
+#The solution is returned in ``ws.g1`` and ``ws.g2``
+#"""
 function gs_solver!(ws::GsSolverWs, d::Matrix{Float64},e::Matrix{Float64}, n1::Int64, qz_criterium::Float64=1 + 1e-6)
     gges!(ws.schurws, 'N', 'V', e, d; select = (αr, αi, β) -> αr^2 + αi^2 < qz_criterium * β^2)
     nstable = ws.schurws.sdim[]::Int
