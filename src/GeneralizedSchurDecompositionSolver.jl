@@ -4,8 +4,6 @@ using LinearAlgebra.LAPACK: gges!
 struct GsSolverWs
     tmp1::Matrix{Float64}
     tmp2::Matrix{Float64}
-    tmp3::Matrix{Float64}
-    Z22::Matrix{Float64}
     g1::Matrix{Float64}
     g2::Matrix{Float64}
     luws1::LUWs
@@ -17,14 +15,12 @@ struct GsSolverWs
         n2 = n - n1
         tmp1 = similar(d, n1, n1)
         tmp2 = similar(d, n1, n1)
-        tmp3 = similar(d, n1, n1)
-        Z22  = similar(d, n2, n2)
         g1   = similar(d, n1, n1)
         g2   = similar(d, n2, n1)
         luws1 = LUWs(tmp1)
-        luws2 = LUWs(Z22)
+        luws2 = LUWs(n2)
         schurws = GeneralizedSchurWs(d)
-        new(tmp1,tmp2,tmp3,Z22,g1,g2, luws1, luws2, schurws)
+        new(tmp1,tmp2,g1,g2, luws1, luws2, schurws)
     end
 end
 
@@ -49,19 +45,16 @@ function gs_solver!(ws::GsSolverWs, d::Matrix{Float64},e::Matrix{Float64}, n1::I
     end
     
     transpose!(ws.g2, view(ws.schurws.vsr, 1:nstable, nstable+1:n))
-    ws.Z22 .= view(ws.schurws.vsr,nstable+1:n, nstable+1:n)
-    lu_t = LU(factorize!(ws.luws2, ws.Z22)...)
+    lu_t = LU(factorize!(ws.luws2, view(ws.schurws.vsr,nstable+1:n, nstable+1:n))...)
     ldiv!(lu_t', ws.g2)
     lmul!(-1.0,ws.g2)
     
-    transpose!(ws.tmp2, view(ws.schurws.vsr, 1:nstable, 1:nstable))
-    ws.g1 .= view(d, 1:nstable,1:nstable)
-    lu_t = LU(factorize!(ws.luws1, ws.g1)...)
-    ldiv!(lu_t', ws.tmp2)
-   
+    transpose!(ws.tmp1, view(ws.schurws.vsr, 1:nstable, 1:nstable))
+    lu_t = LU(factorize!(ws.luws1, view(d, 1:nstable,1:nstable))...)
+    ldiv!(lu_t', ws.tmp1)
+
     transpose!(ws.tmp3, view(e,1:nstable,1:nstable))
-    ws.g1 .= view(ws.schurws.vsr,1:nstable, 1:nstable)
-    lu_t = LU(factorize!(ws.luws1, ws.g1)...)
+    lu_t = LU(factorize!(ws.luws1, view(ws.schurws.vsr,1:nstable, 1:nstable))...)
     ldiv!(lu_t', ws.tmp3)
     mul!(ws.g1, ws.tmp2', ws.tmp3', 1.0, 0.0)
 end
