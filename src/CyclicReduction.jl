@@ -6,7 +6,7 @@ mutable struct CyclicReductionWs
     linsolve_ws::LUWs
     ahat1::Matrix{Float64}
     a1copy::Matrix{Float64}
-    m::Matrix{Float64,}
+    m::Matrix{Float64}
     m1::Matrix{Float64}
     m2::Matrix{Float64}
     info::Int
@@ -83,7 +83,7 @@ function cyclic_reduction!(x::AbstractMatrix{Float64},
         lu_t = LU(factorize!(ws.linsolve_ws, ws.a1copy)...)
         ldiv!(lu_t, ws.m1)
         
-        gemm!('N','N',-1.0,m2,m1,0.0,m)
+        mul!(m, m2, m1, -1.0, 0.0)
         
         a1 .+= m02 .+ m20
         m1_a0 .= m00

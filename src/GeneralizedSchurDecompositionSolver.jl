@@ -47,6 +47,7 @@ function gs_solver!(ws::GsSolverWs, d::Matrix{Float64},e::Matrix{Float64}, n1::I
     elseif nstable > n1
         throw(UndeterminateSystemException())
     end
+    
     transpose!(ws.g2, view(ws.schurws.vsr, 1:nstable, nstable+1:n))
     ws.Z22 .= view(ws.schurws.vsr,nstable+1:n, nstable+1:n)
     lu_t = LU(factorize!(ws.luws2, ws.Z22)...)
@@ -62,6 +63,6 @@ function gs_solver!(ws::GsSolverWs, d::Matrix{Float64},e::Matrix{Float64}, n1::I
     ws.g1 .= view(ws.schurws.vsr,1:nstable, 1:nstable)
     lu_t = LU(factorize!(ws.luws1, ws.g1)...)
     ldiv!(lu_t', ws.tmp3)
-    gemm!('T','T',1.0,ws.tmp2,ws.tmp3,0.0,ws.g1)
+    mul!(ws.g1, ws.tmp2', ws.tmp3', 1.0, 0.0)
 end
 
