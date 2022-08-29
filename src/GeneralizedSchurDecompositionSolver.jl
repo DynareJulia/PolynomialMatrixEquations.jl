@@ -53,9 +53,9 @@ function gs_solver!(ws::GsSolverWs, d::Matrix{Float64},e::Matrix{Float64}, n1::I
     lu_t = LU(factorize!(ws.luws1, view(d, 1:nstable,1:nstable))...)
     ldiv!(lu_t', ws.tmp1)
 
-    transpose!(ws.tmp3, view(e,1:nstable,1:nstable))
+    transpose!(ws.tmp2, view(e,1:nstable,1:nstable))
     lu_t = LU(factorize!(ws.luws1, view(ws.schurws.vsr,1:nstable, 1:nstable))...)
-    ldiv!(lu_t', ws.tmp3)
-    mul!(ws.g1, ws.tmp2', ws.tmp3', 1.0, 0.0)
+    ldiv!(lu_t', ws.tmp2)
+    mul!(ws.g1, ws.tmp1', ws.tmp2', 1.0, 0.0)
 end
 
