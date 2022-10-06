@@ -5,6 +5,7 @@ export CyclicReductionWs, cyclic_reduction!, cyclic_reduction_check
 mutable struct CyclicReductionWs
     linsolve_ws::LUWs
     ahat1::Matrix{Float64}
+    a1::Matrix{Float64}
     a1copy::Matrix{Float64}
     m::Matrix{Float64}
     m1::Matrix{Float64}
@@ -13,12 +14,13 @@ mutable struct CyclicReductionWs
 
     function CyclicReductionWs(n)
         linsolve_ws = LUWs(n)
-        ahat1 = Matrix{Float64}(undef, n,n)
-        a1copy = Matrix{Float64}(undef, n,n)
-        m = Matrix{Float64}(undef, 2*n,2*n)
+        ahat1 = Matrix{Float64}(undef, n, n)
+        a1 = Matrix{Float64}(undef, n, n)
+        a1copy = Matrix{Float64}(undef, n, n)
+        m = Matrix{Float64}(undef, 2*n, 2*n)
         m1 = Matrix{Float64}(undef, n, 2*n)
         m2 = Matrix{Float64}(undef, 2*n, n)
-        new(linsolve_ws, ahat1, a1copy, m, m1, m2,0) 
+        new(linsolve_ws, ahat1, a1, a1copy, m, m1, m2, 0) 
     end
 end
 
@@ -52,14 +54,15 @@ julia> cyclic_reduction!(x,a0,a1,a2,ws,1e-8,50)
 ```
 """
 function cyclic_reduction!(x::AbstractMatrix{Float64},
-                           a0::AbstractMatrix{Float64},
-                           a1::AbstractMatrix{Float64},
-                           a2::AbstractMatrix{Float64},
+                           a0_arg::AbstractMatrix{Float64},
+                           a1_arg::AbstractMatrix{Float64},
+                           a2_arg::AbstractMatrix{Float64},
                            ws::CyclicReductionWs,
                            cvg_tol::Float64,
                            max_it::Int)
-    n = size(a0,1)
-    x .= a0
+    n = size(a0_arg, 1)
+    x .= a0_arg
+    a1 = ws.a1
     m = ws.m
     m1 = ws.m1
     m2 = ws.m2
@@ -67,11 +70,12 @@ function cyclic_reduction!(x::AbstractMatrix{Float64},
     m1_a2 = view(m1,1:n,n+1:2n)
     m2_a0 = view(m2, 1:n, 1:n)
     m2_a2 = view(m2, n+1:2n, 1:n)
+    a1 .= a1_arg
     ws.ahat1 .= a1
-    m1_a0 .= a0
-    m1_a2 .= a2
-    m2_a0 .= a0
-    m2_a2 .= a2
+    m1_a0 .= a0_arg
+    m1_a2 .= a2_arg
+    m2_a0 .= a0_arg
+    m2_a2 .= a2_arg
     it = 0
     m00 = view(m,1:n,1:n)
     m02 = view(m,1:n,n+1:2n)
