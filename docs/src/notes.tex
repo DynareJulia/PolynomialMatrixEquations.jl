@@ -1,0 +1,121 @@
+\documentclass{article}
+\usepackage{times}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+
+\title{Solving matrix equation $A_2X^2 + A_1X + A_0 =0$}
+\author{Michel Juillard}
+\date{December 2022}
+
+\begin{document}
+\maketitle
+
+We are interested in real solutions to equation
+\[
+  A_2X^2 + A_1X + A_0 =0
+\]
+where $A_i,\;\;\; i=0,1,2$ are square matrices of order $n$ and we
+want to know if there exist a unique solution where the eigenvalues of
+the solution $X$ are inside the unit circle.
+
+We consider two algorithms: cyclic reduction and generalized Schur
+decomposition.
+
+We can take advantage of the zero columns of $A_i,\;\;\;
+i=0,1,2$. Let's define $\iota_i$ as the set of indices of non-zero columns of matrix
+$A_i$ and $\iota_b$, the intersection of $\iota_0$ and $\iota_2$,
+corresponding to the column that aren't zero in $A_0$ and in
+$A_2$. The set $\iota_m = \iota_0 \setminus \iota_b$ indicates the columns
+that are non-zero in $A_0$ but not in $A_2$. $b_{\iota_0}$ collects
+the indices of the element of $b$ in $\iota_0$ and $b_{\iota_2}$ collects
+the indices of the element of $b$ in $\iota_2$. 
+
+We note $M^{c}$ a matrix made of a selection of its columns in set $c$
+and $M^{(r, c)}$ a submatrix made of rows in set $r$ and columns in
+set $c$. 
+
+\section{Generalized Schur decomposition}
+Before using generalized Schur decomposition, we need to transform the
+original problem in a linear one. If
+\[
+  A_2X^2 + A_1X + A_0 =0
+\]
+we can rewrite the equation as
+\[
+  \begin{bmatrix}
+    A_1 & A_2\\
+    I & 0
+  \end{bmatrix}
+  \begin{bmatrix}
+    I \\
+    X
+  \end{bmatrix}
+  X
+  =
+  \begin{bmatrix} 
+    -A_0 & 0\\
+    0 & I
+  \end{bmatrix}
+  \begin{bmatrix}
+    I \\
+    X
+  \end{bmatrix}
+\]
+or, taking into account the empty columns in $A_i,\;\;\; i=0,1,2$
+\[
+  \begin{bmatrix}
+    A^{(\iota_m)}_1 & A^{(\iota_2)}_2\\
+    I^{(b_{\iota_m})} & 0
+  \end{bmatrix}
+  \begin{bmatrix}
+    I \\
+    X^{(\iota_2,\iota_0)}
+  \end{bmatrix}
+  X^{(\iota_0,\iota_0)}
+  =
+  \begin{bmatrix} 
+    -A^{(\iota_0)}_0 & -A^{(\iota_2)}_1\\
+    0 & I^{(b_{\iota_2})}
+  \end{bmatrix}
+  \begin{bmatrix}
+    I \\
+    X^{(\iota_2,\iota_0)}
+  \end{bmatrix}
+\]
+where $I$ matrices are conformant. $I^{(b_{\iota_i})}$ is a matrix
+with as many columns as $A^{(\iota_i}_i$ and made of unit vectors in
+columns $b_{\iota_i}$ for $i=0,2$. Note that the choice of putting
+columns $A^{\iota_b}_1$ on the right hand side is arbitrary but has no
+implication on the results.
+
+Let's note
+\[
+  D = 
+  \begin{bmatrix}
+    A^{(\iota_m)}_1 & A^{(\iota_2)}_2\\
+    I^{(b_{\iota_m})} & 0
+  \end{bmatrix}
+\]
+and
+\[
+  E =
+  \begin{bmatrix} 
+    -A^{(\iota_0)}_0 & -A^{(\iota_2)}_1\\
+    0 & I^{(b_{\iota_2})}
+  \end{bmatrix}
+\]  
+
+Then we can use the generalized Schur decomposition to select an $X$
+matrix with all eigenvalues inside the unit circle and check that it
+is unique.
+
+
+
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
