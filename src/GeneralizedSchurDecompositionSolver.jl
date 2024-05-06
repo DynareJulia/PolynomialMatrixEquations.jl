@@ -25,7 +25,7 @@ struct GsSolverWs
 end
 
 #"""
-#    gs_solver!(ws::GsSolverWs,d::Matrix{Float64},e::Matrix{Float64},n1::Int64,qz_criterium)
+#    gs_solver!(ws::GsSolverWs, d::Matrix{Float64}, e::Matrix{Float64}, n1::Int64, qz_criterium)
 #
 #finds the unique stable solution for the following system:
 #
@@ -34,8 +34,8 @@ end
 #```
 #The solution is returned in ``ws.g1`` and ``ws.g2``
 #"""
-function gs_solver!(ws::GsSolverWs, d::Matrix{Float64},e::Matrix{Float64}, n1::Int64, qz_criterium::Float64=1 + 1e-6)
-    gges!(ws.schurws, 'N', 'V', e, d; select = (αr, αi, β) -> αr^2 + αi^2 < qz_criterium * β^2)
+function gs_solver!(ws::GsSolverWs, d::Matrix{Float64}, e::Matrix{Float64}, n1::Int64, qz_criterium::Union{Float64, FastLapackInterface.SCHURORDER} = 1 + 1e-6)
+    gges_select!(ws.schurws, 'N', 'V', e, d; select = qz_criterium)
     nstable = ws.schurws.sdim[]::Int
     n = size(d, 1)
     if nstable < n1
@@ -57,5 +57,15 @@ function gs_solver!(ws::GsSolverWs, d::Matrix{Float64},e::Matrix{Float64}, n1::I
     lu_t = LU(factorize!(ws.luws1, view(ws.schurws.vsr,1:nstable, 1:nstable))...)
     ldiv!(lu_t', ws.tmp2)
     mul!(ws.g1, ws.tmp1', ws.tmp2', 1.0, 0.0)
+end
+
+function gges_select!(ws::GSSolverWs, n1::Int64, qz_criterium::Number)
+    # This is a closure
+    return gges!(ws.schurws, 'N', 'V', ws.e, ws.d, select = (αr, αi, β) -> αr^2 + αi^2 < qz_criterium * β^2)
+end
+
+function gges_select!(ws::GSSolverWs, n1::Int64, qz_criterium::FastLapackInterface.SCHURORDER)
+    # This is not a closure
+    return gges!(ws.schurws, 'N', 'V', ws.e, ws.d, select = qz_criterium)
 end
 
