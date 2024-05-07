@@ -35,7 +35,7 @@ end
 #The solution is returned in ``ws.g1`` and ``ws.g2``
 #"""
 function gs_solver!(ws::GsSolverWs, d::Matrix{Float64}, e::Matrix{Float64}, n1::Int64, qz_criterium::Union{Float64, FastLapackInterface.SCHURORDER} = 1 + 1e-6)
-    gges_select!(ws.schurws,  qz_criterium)
+    gges_select!(ws, d, e,  qz_criterium)
     nstable = ws.schurws.sdim[]::Int
     n = size(d, 1)
     if nstable < n1
@@ -59,13 +59,13 @@ function gs_solver!(ws::GsSolverWs, d::Matrix{Float64}, e::Matrix{Float64}, n1::
     mul!(ws.g1, ws.tmp1', ws.tmp2', 1.0, 0.0)
 end
 
-function gges_select!(ws::GsSolverWs, qz_criterium::Number)
+function gges_select!(ws::GsSolverWs, d, e, qz_criterium::Number)
     # This is a closure
-    return gges!(ws.schurws, 'N', 'V', ws.e, ws.d, select = (αr, αi, β) -> αr^2 + αi^2 < qz_criterium * β^2)
+    return gges!(ws.schurws, 'N', 'V', e, d, select = (αr, αi, β) -> αr^2 + αi^2 < qz_criterium * β^2)
 end
 
-function gges_select!(ws::GsSolverWs, qz_criterium::FastLapackInterface.SCHURORDER)
+function gges_select!(ws::GsSolverWs, d, e, qz_criterium::FastLapackInterface.SCHURORDER)
     # This is not a closure
-    return gges!(ws.schurws, 'N', 'V', ws.e, ws.d, select = qz_criterium)
+    return gges!(ws.schurws, 'N', 'V', e, d, select = qz_criterium)
 end
 
