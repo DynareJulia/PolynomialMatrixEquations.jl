@@ -1,6 +1,11 @@
+0.2.2
+=====
+- use preset selection function for Schur decomposition so as to avoid a cfunction closure that doesn't work on all plateforms
+- requires  FastLapackInterface v.2.0.4
+
 0.2.1
 =====
-- swtich to FastLapackInterface v.2.0.0
+- switch to FastLapackInterface v.2.0.0
 
 0.2.0
 =====
